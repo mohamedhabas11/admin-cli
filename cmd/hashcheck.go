@@ -18,10 +18,11 @@ var hashCheckCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// Leverage a map to store the hashes of the files in the directory
 		hashes := make(map[[32]byte][]string) // Map of hashes (SHA-256 produces a 32-byte hash) to file paths
+
 		// Leverage filepath.Walk to traverse the directory and compute the hash of each file, storing it in the map
 		err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				return err
+				return fmt.Errorf("error accessing file %s: %v", path, err)
 			}
 			// Ignore directories
 			if info.IsDir() {
@@ -57,18 +58,21 @@ func init() {
 
 // computeFileHash computes the SHA-256 hash of a file at the given path
 func computeFileHash(path string) ([32]byte, error) {
-	file, err := os.Open(path)
+	file, err := os.Open(path) // Open the file at the given path
 	if err != nil {
-		return [32]byte{}, err
+		return [32]byte{}, err // Return an empty array and the error if opening fails
 	}
-	defer file.Close()
+	defer file.Close() // Ensure the file is closed when the function exits
 
-	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return [32]byte{}, err
+	hash := sha256.New()                           // Create a new SHA-256 hash instance
+	if _, err := io.Copy(hash, file); err != nil { // Copy file content into the hash
+		return [32]byte{}, err // Return an empty array and the error if copying fails
 	}
 
-	return sha256.Sum256(hash.Sum(nil)), nil
+	var result [32]byte            // Declare a variable to hold the resulting hash
+	copy(result[:], hash.Sum(nil)) // Copy the computed hash into the result variable
+
+	return result, nil // Return the hash and no error
 }
 
 // printCollisions prints the files that have the same hash

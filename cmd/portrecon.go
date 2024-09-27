@@ -12,6 +12,7 @@ import (
 var portList []int
 var ip string
 var portRange string
+var allFlag bool // Flag to indicate --all option
 
 var portReconCmd = &cobra.Command{
 	Use:   "portrecon",
@@ -34,7 +35,7 @@ var portReconCmd = &cobra.Command{
 		portList = removeDuplicates(portList)
 
 		// Scan the specified ports and get the list of open ports
-		openPorts := internal.ScanPorts(ip, portList)
+		openPorts := internal.ScanPorts(ip, portList, allFlag || portRange != "")
 
 		// Display the results
 		if len(openPorts) > 0 {
@@ -50,6 +51,7 @@ func init() {
 	portReconCmd.Flags().StringVarP(&ip, "ip", "i", "127.0.0.1", "IP address to scan")
 	portReconCmd.Flags().IntSliceVarP(&portList, "ports", "p", []int{80}, "Comma-separated list of ports to scan")
 	portReconCmd.Flags().StringVarP(&portRange, "range", "r", "", "Range of ports to scan (e.g., 20-80)")
+	portReconCmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Scan all ports (1-65535)")
 	rootCmd.AddCommand(portReconCmd)
 }
 

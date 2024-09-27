@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"net"
+	"sort"
 	"sync"
 	"time"
 
@@ -10,14 +11,19 @@ import (
 )
 
 // ScanPorts scans a range of ports on a given IP address
-// and returns a slice of open ports with progress bar feedback.
-func ScanPorts(ip string, ports []int) []int {
+// and returns a slice of open ports with optional progress bar feedback.
+func ScanPorts(ip string, ports []int, showProgress bool) []int {
 	var openPorts []int
 	var mu sync.Mutex // Mutex to protect shared resources
 	var wg sync.WaitGroup
-	results := make(chan int, len(ports))         // Buffered channel to avoid blocking
-	semaphore := make(chan struct{}, 100)         // Limit to 100 concurrent scans
-	bar := progressbar.Default(int64(len(ports))) // Initialize progress bar
+	results := make(chan int, len(ports)) // Buffered channel to avoid blocking
+	semaphore := make(chan struct{}, 100) // Limit to 100 concurrent scans
+	var bar *progressbar.ProgressBar
+
+	// Initialize progress bar if needed
+	if showProgress {
+		bar = progressbar.Default(int64(len(ports))) // Initialize progress bar
+	}
 
 	// Function to scan a single port
 	scan := func(port int) {
@@ -29,12 +35,13 @@ func ScanPorts(ip string, ports []int) []int {
 		if err == nil {
 			// Port is open
 			conn.Close()
-			mu.Lock() // Lock to safely append to openPorts
-			results <- port
+			mu.Lock()       // Lock before appending to shared resource
+			results <- port // Send the open port to the results channel
 			mu.Unlock()
 		}
-		// Update the progress bar after each scan
-		bar.Add(1)
+		if showProgress {
+			bar.Add(1) // Update the progress bar
+		}
 	}
 
 	// Start goroutines for each port
@@ -47,23 +54,28 @@ func ScanPorts(ip string, ports []int) []int {
 		}(port)
 	}
 
-	// Close results channel once all goroutines are done
 	go func() {
+		// Close results channel once all goroutines are done
 		wg.Wait()
 		close(results)
 	}()
 
 	// Collect results and display open ports immediately
-	go func() {
-		for port := range results {
-			openPorts = append(openPorts, port)
-			fmt.Printf("Port %d is open\n", port) // Print open port immediately
-		}
-	}()
+	for port := range results {
+		mu.Lock() // Ensure safe access to openPorts
+		openPorts = append(openPorts, port)
+		mu.Unlock()
 
-	// Wait for all goroutines to finish
-	wg.Wait()
-	bar.Finish()
+		// Print open port immediately
+		fmt.Printf("\r\033[KPort %d is open\n", port) // Clear the line before printing
+	}
+
+	if showProgress {
+		bar.Finish() // Finish the progress bar
+	}
+
+	// Sort the open ports for consistent output
+	sort.Ints(openPorts)
 
 	return openPorts
 }

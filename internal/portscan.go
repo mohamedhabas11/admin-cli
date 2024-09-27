@@ -13,6 +13,7 @@ import (
 // and returns a slice of open ports with progress bar feedback.
 func ScanPorts(ip string, ports []int) []int {
 	var openPorts []int
+	var mu sync.Mutex // Mutex to protect shared resources
 	var wg sync.WaitGroup
 	results := make(chan int, len(ports))         // Buffered channel to avoid blocking
 	semaphore := make(chan struct{}, 100)         // Limit to 100 concurrent scans
@@ -28,7 +29,9 @@ func ScanPorts(ip string, ports []int) []int {
 		if err == nil {
 			// Port is open
 			conn.Close()
+			mu.Lock() // Lock to safely append to openPorts
 			results <- port
+			mu.Unlock()
 		}
 		// Update the progress bar after each scan
 		bar.Add(1)
@@ -51,11 +54,15 @@ func ScanPorts(ip string, ports []int) []int {
 	}()
 
 	// Collect results and display open ports immediately
-	for port := range results {
-		openPorts = append(openPorts, port)
-	}
+	go func() {
+		for port := range results {
+			openPorts = append(openPorts, port)
+			fmt.Printf("Port %d is open\n", port) // Print open port immediately
+		}
+	}()
 
-	// Finish the progress bar
+	// Wait for all goroutines to finish
+	wg.Wait()
 	bar.Finish()
 
 	return openPorts

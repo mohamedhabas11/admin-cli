@@ -5,11 +5,18 @@ import (
 )
 
 func TestGeneratePassword(t *testing.T) {
-	password, err := GeneratePassword(10)
+	length := 12
+	pass, err := GeneratePassword(length)
+
 	if err != nil {
-		t.Fatalf("GeneratePassword() err = %v; want nil", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
-	if len(password) != 10 {
-		t.Errorf("len(password) = %d; want 10", len(password))
+
+	if len(pass) != length {
+		t.Errorf("Expected password length %d, got %d", length, len(pass))
+	}
+
+	if pass == "" {
+		t.Error("Generated password should not be empty")
 	}
 }

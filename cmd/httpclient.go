@@ -48,6 +48,7 @@ var getCmd = &cobra.Command{
 var uploadCmd = &cobra.Command{
 	Use:   "upload [path] [file]",
 	Short: "Upload a file to the specified path",
+	Long:  "Example: admin-cli httpclient upload '/upload' ./Dockerfile --base-url 'http://localhost:8080'",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		client := setupClient()

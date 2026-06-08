@@ -3,11 +3,13 @@ package internal
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"time"
 )
 
 func CheckSSLExpiry(host string, port int) (time.Time, error) {
-	conn, err := tls.DialWithDialer(&tls.Dialer{Timeout: 5 * time.Second}, "tcp", fmt.Sprintf("%s:%d", host, port), nil)
+	dialer := &net.Dialer{Timeout: 5 * time.Second}
+	conn, err := tls.DialWithDialer(dialer, "tcp", fmt.Sprintf("%s:%d", host, port), &tls.Config{})
 	if err != nil {
 		return time.Time{}, err
 	}

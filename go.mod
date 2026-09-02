@@ -1,10 +1,10 @@
 module admin-cli
 
-go 1.23.0
+go 1.25
 
 require (
 	filippo.io/age v1.2.1
-	github.com/klauspost/compress v1.18.0
+	github.com/klauspost/compress v1.20.0
 	github.com/schollz/progressbar/v3 v3.16.0
 	github.com/spf13/cobra v1.8.1
 )
